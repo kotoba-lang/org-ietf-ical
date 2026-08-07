@@ -23,7 +23,13 @@
 ;; --- date-time parsing ---
 
 (defn- parse-dt
-  "Parse iCalendar date/date-time string `YYYYMMDD[Thhmmss[Z]]` to a {:y :m :d :hh :mm} map."
+  "Parse `YYYYMMDD[Thhmmss[Z]]` to `{:y :m :d :hh :mm}`, plus `:utc? true` for
+  RFC 5545 FORM #2.
+
+  The `Z` used to be accepted and discarded, so `20260701T100000Z` parsed and
+  re-emitted as `20260701T100000` — the same digits meaning a different
+  instant in every timezone but UTC. That is a round-trip that silently
+  changes an appointment's time, so the flag is carried rather than dropped."
   [s]
   (when (and s (>= (count s) 8))
     (let [y  (parse-int (subs s 0 4))
@@ -32,7 +38,10 @@
           has-time? (and (>= (count s) 15) (= \T (nth s 8)))
           hh (if has-time? (parse-int (subs s 9 11)) 0)
           mm (if has-time? (parse-int (subs s 11 13)) 0)]
-      {:y y :m m :d d :hh hh :mm mm})))
+      (cond-> {:y y :m m :d d :hh hh :mm mm}
+        ;; Only on a date-TIME. "Z" cannot appear on a DATE value, and a
+        ;; date carrying :utc? would emit a trailing Z that no parser accepts.
+        (and has-time? (str/ends-with? s "Z")) (assoc :utc? true)))))
 
 ;; --- RRULE parsing ---
 
@@ -209,11 +218,16 @@
       s)))
 
 (defn- emit-dt
-  "Emit a {:y :m :d :hh :mm} map as an iCalendar date-time string."
+  "Emit a `{:y :m :d :hh :mm}` map as an iCalendar date-time string.
+
+  `:utc? true` appends the `Z` of RFC 5545 FORM #2. Without it the value is
+  FORM #1 (floating local time), which is the right default for a birthday and
+  the wrong one for a meeting between two timezones."
   [dt]
   (when dt
     (str (zero-pad (:y dt) 4) (zero-pad (:m dt) 2) (zero-pad (:d dt) 2)
-         "T" (zero-pad (get dt :hh 0) 2) (zero-pad (get dt :mm 0) 2) "00")))
+         "T" (zero-pad (get dt :hh 0) 2) (zero-pad (get dt :mm 0) 2) "00"
+         (when (:utc? dt) "Z"))))
 
 (def ^:private byday->str
   {:mo "MO" :tu "TU" :we "WE" :th "TH" :fr "FR" :sa "SA" :su "SU"})

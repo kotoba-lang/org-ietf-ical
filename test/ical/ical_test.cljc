@@ -1,5 +1,6 @@
 (ns ical.ical-test
-  (:require [clojure.test :refer [deftest is testing]]
+  (:require [clojure.string :as str]
+            [clojure.test :refer [deftest is testing]]
             #?(:clj [clojure.java.io :as io])
             [ical.model    :as model]
             [ical.validate :as v]
@@ -266,3 +267,38 @@
                                 {:y 2028 :m 1 :d 1 :hh 0 :mm 0})]
     (is (= [dt] in)  "dtstart in range → returned")
     (is (= []   out) "dtstart out of range → empty")))
+
+;; ── RFC 5545 FORM #2 (UTC) ───────────────────────────────────────────────────
+;;
+;; The `Z` used to be parsed and thrown away, so a UTC time re-emitted as a
+;; floating one — the same digits meaning a different instant everywhere but
+;; UTC. For a calendar invitation that is an appointment at the wrong time.
+
+(deftest utc-suffix-survives-a-round-trip
+  (let [ics (str "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:u1\r\n"
+                 "DTSTART:20260701T100000Z\r\nDTEND:20260701T103000Z\r\n"
+                 "END:VEVENT\r\nEND:VCALENDAR\r\n")
+        parsed (ical/parse-str ics)
+        evt (first (:ical/events parsed))]
+    (is (true? (:utc? (:ical/dtstart evt))))
+    (is (true? (:utc? (:ical/dtend evt))))
+    (testing "and comes back out with its Z"
+      (let [out (ical/emit-str parsed)]
+        (is (str/includes? out "DTSTART:20260701T100000Z"))
+        (is (str/includes? out "DTEND:20260701T103000Z"))))))
+
+(deftest floating-times-stay-floating
+  ;; The default must not change: a value with no Z is FORM #1, which is right
+  ;; for anything that happens at the same wall-clock time wherever you are.
+  (let [ics (str "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:u2\r\n"
+                 "DTSTART:20260701T100000\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        evt (first (:ical/events (ical/parse-str ics)))]
+    (is (nil? (:utc? (:ical/dtstart evt))))
+    (is (str/includes? (ical/emit-str (ical/parse-str ics)) "DTSTART:20260701T100000\r\n"))))
+
+(deftest a-date-value-never-gains-a-z
+  ;; "Z" cannot appear on a DATE, and one emitted there is unparseable.
+  (let [ics (str "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:u3\r\n"
+                 "DTSTART:20260701\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        evt (first (:ical/events (ical/parse-str ics)))]
+    (is (nil? (:utc? (:ical/dtstart evt))))))
