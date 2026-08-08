@@ -302,3 +302,22 @@
                  "DTSTART:20260701\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
         evt (first (:ical/events (ical/parse-str ics)))]
     (is (nil? (:utc? (:ical/dtstart evt))))))
+
+(deftest a-date-is-a-whole-day-not-midnight
+  ;; :hh and :mm default to 0 for both forms, so without a flag an all-day
+  ;; event is indistinguishable from one at exactly 00:00 — and a consumer
+  ;; computing free/busy reads a whole day as a zero-length moment.
+  (let [ics (str "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:d1\r\n"
+                 "DTSTART:20260701\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        parsed (ical/parse-str ics)
+        evt (first (:ical/events parsed))]
+    (is (true? (:date-only? (:ical/dtstart evt))))
+    (testing "and it emits back as a DATE, not as midnight"
+      (is (str/includes? (ical/emit-str parsed) "DTSTART:20260701\r\n")))))
+
+(deftest a-date-time-is-not-marked-date-only
+  (let [ics (str "BEGIN:VCALENDAR\r\nBEGIN:VEVENT\r\nUID:d2\r\n"
+                 "DTSTART:20260701T000000Z\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n")
+        evt (first (:ical/events (ical/parse-str ics)))]
+    (is (nil? (:date-only? (:ical/dtstart evt))))
+    (is (true? (:utc? (:ical/dtstart evt))))))
