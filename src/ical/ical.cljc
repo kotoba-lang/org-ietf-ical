@@ -41,7 +41,12 @@
       (cond-> {:y y :m m :d d :hh hh :mm mm}
         ;; Only on a date-TIME. "Z" cannot appear on a DATE value, and a
         ;; date carrying :utc? would emit a trailing Z that no parser accepts.
-        (and has-time? (str/ends-with? s "Z")) (assoc :utc? true)))))
+        (and has-time? (str/ends-with? s "Z")) (assoc :utc? true)
+        ;; A DATE (VALUE=DATE, `YYYYMMDD`) is not midnight — it is a whole day.
+        ;; :hh and :mm default to 0 either way, so without this flag a caller
+        ;; cannot tell an all-day event from one at exactly 00:00, and every
+        ;; all-day entry reads as a zero-length moment at midnight.
+        (not has-time?) (assoc :date-only? true)))))
 
 ;; --- RRULE parsing ---
 
@@ -225,9 +230,13 @@
   the wrong one for a meeting between two timezones."
   [dt]
   (when dt
-    (str (zero-pad (:y dt) 4) (zero-pad (:m dt) 2) (zero-pad (:d dt) 2)
-         "T" (zero-pad (get dt :hh 0) 2) (zero-pad (get dt :mm 0) 2) "00"
-         (when (:utc? dt) "Z"))))
+    (if (:date-only? dt)
+      ;; FORM: DATE. Emitting the time back would turn a whole day into
+      ;; midnight, which is the same information loss in the other direction.
+      (str (zero-pad (:y dt) 4) (zero-pad (:m dt) 2) (zero-pad (:d dt) 2))
+      (str (zero-pad (:y dt) 4) (zero-pad (:m dt) 2) (zero-pad (:d dt) 2)
+           "T" (zero-pad (get dt :hh 0) 2) (zero-pad (get dt :mm 0) 2) "00"
+           (when (:utc? dt) "Z")))))
 
 (def ^:private byday->str
   {:mo "MO" :tu "TU" :we "WE" :th "TH" :fr "FR" :sa "SA" :su "SU"})
