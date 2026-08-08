@@ -15,10 +15,27 @@
 
 ;; --- portable integer parser (no java.lang.Long/parseLong in CLJS) ---
 
+(def ^:private digit
+  ;; A ClojureScript character IS a one-character string, so `(seq "2026")`
+  ;; yields exactly the keys of this map in both runtimes. A lookup is the one
+  ;; formulation that needs no reader conditional and no code-point
+  ;; arithmetic.
+  {\0 0 \1 1 \2 2 \3 3 \4 4 \5 5 \6 6 \7 7 \8 8 \9 9})
+
 (defn- parse-int
-  "Parse a decimal string to integer. Portable across JVM and CLJS."
+  "Parse a decimal string to integer. Portable across JVM and CLJS.
+
+  It previously read `(- (int c) 48)`, which is right on the JVM — `(int \2)`
+  is the code point 50 — and silently wrong in ClojureScript, where a char is
+  a string and `(int \"2\")` coerces to **2**, so every digit came out as
+  2-48 = -46. `\"2026\"` parsed as -51302 and an iCalendar date became a
+  timestamp tens of thousands of years in the past.
+
+  The suite could not see it: the tests are `.cljc` but only ever run on the
+  JVM, where the old code was correct. `script/cljs_smoke.cljs` now exercises
+  this path under nbb for that reason."
   [s]
-  (reduce (fn [acc c] (+ (* acc 10) (- (int c) 48))) 0 s))
+  (reduce (fn [acc c] (+ (* acc 10) (digit c 0))) 0 s))
 
 ;; --- date-time parsing ---
 
