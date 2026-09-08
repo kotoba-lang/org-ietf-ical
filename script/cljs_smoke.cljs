@@ -8,7 +8,7 @@
   not a claim, it is a hope.
 
   Run: nbb --classpath src script/cljs_smoke.cljs"
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [ical.ical :as ical]))
 
 (def failures (atom []))
