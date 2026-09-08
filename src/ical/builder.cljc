@@ -1,6 +1,6 @@
 (ns ical.builder
   "Small builder API for iCalendar content lines."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 (def ^:private text-props #{:summary :description :location :comment :categories :name :contact})
 
@@ -12,7 +12,7 @@
       (str/replace "\n" "\\n")))
 
 (defn- prop [k v]
-  (str (str/upper-case (name k)) ":" (if (text-props k) (esc-text v) (str v))))
+  (str (str/upper (name k)) ":" (if (text-props k) (esc-text v) (str v))))
 
 (defn- fold [line]
   (if (<= (count line) 75)
@@ -22,10 +22,10 @@
              (str "\r\n " (subs line i (min (count line) (+ i 74))))))))
 
 (defn- lines [cname props children]
-  (concat [(str "BEGIN:" (str/upper-case (name cname)))]
+  (concat [(str "BEGIN:" (str/upper (name cname)))]
           (for [[k v] props] (prop k v))
           (apply concat children)
-          [(str "END:" (str/upper-case (name cname)))]))
+          [(str "END:" (str/upper (name cname)))]))
 
 (defn vevent "A VEVENT component as content lines." [props] (lines :vevent props nil))
 (defn vtodo "A VTODO component as content lines." [props] (lines :vtodo props nil))

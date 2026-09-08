@@ -11,7 +11,7 @@
   - RRULE as `FREQ=…;INTERVAL=…;COUNT=…;UNTIL=…;BYDAY=MO,WE` → rrule map
 
   `emit-str` round-trips: parse-str ∘ emit-str is identity on the EDN model."
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 ;; --- portable integer parser (no java.lang.Long/parseLong in CLJS) ---
 
@@ -79,7 +79,7 @@
         m     (into {} pairs)]
     (cond-> {}
       (get m "FREQ")
-      (assoc :ical/freq (keyword (str/lower-case (get m "FREQ"))))
+      (assoc :ical/freq (keyword (str/lower (get m "FREQ"))))
 
       (get m "INTERVAL")
       (assoc :ical/interval (parse-int (get m "INTERVAL")))
@@ -92,7 +92,7 @@
 
       (get m "BYDAY")
       (assoc :ical/byday
-             (mapv #(get str->byday (str/upper-case (str/trim %)))
+             (mapv #(get str->byday (str/upper (str/trim %)))
                    (str/split (get m "BYDAY") #","))))))
 
 ;; --- value unescaping (RFC 5545 §3.3.11) ---
@@ -145,7 +145,7 @@
       (let [name-params (subs line 0 colon)
             value       (unescape (subs line (inc colon)))
             semi        (str/index-of name-params ";")
-            prop-name   (str/upper-case (if semi (subs name-params 0 semi) name-params))
+            prop-name   (str/upper (if semi (subs name-params 0 semi) name-params))
             params      (when semi
                           (into {} (map (fn [p]
                                          (let [eq (str/index-of p "=")]
@@ -224,7 +224,7 @@
               "DTSTART"     (vswap! state update :cur assoc :ical/dtstart     (parse-dt value))
               "DUE"         (vswap! state update :cur assoc :ical/due         (parse-dt value))
               "STATUS"      (vswap! state update :cur assoc :ical/status
-                                    (keyword (str/lower-case (str/replace value "_" "-"))))
+                                    (keyword (str/lower (str/replace value "_" "-"))))
               nil)))))
     (:cal @state)))
 
@@ -262,7 +262,7 @@
   "Emit a rule map as an iCalendar RRULE value string."
   [rrule]
   (when rrule
-    (str "FREQ=" (str/upper-case (name (:ical/freq rrule)))
+    (str "FREQ=" (str/upper (name (:ical/freq rrule)))
          (when-let [i (:ical/interval rrule)] (str ";INTERVAL=" i))
          (when-let [c (:ical/count rrule)]    (str ";COUNT=" c))
          (when-let [u (:ical/until rrule)]    (str ";UNTIL=" (emit-dt u)))
@@ -294,7 +294,7 @@
            (prop-line "DESCRIPTION" (some-> (:ical/description td) escape))
            (prop-line "DTSTART"     (emit-dt (:ical/dtstart td)))
            (prop-line "DUE"         (emit-dt (:ical/due td)))
-           (prop-line "STATUS"      (some-> (:ical/status td) name str/upper-case
+           (prop-line "STATUS"      (some-> (:ical/status td) name str/upper
                                             (str/replace "-" "_")))
            "END:VTODO"]))
 

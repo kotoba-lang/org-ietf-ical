@@ -16,7 +16,7 @@
   yields at most its dtstart. The :hh/:mm of the original dtstart are preserved on each
   returned occurrence."
 
-  (:require [clojure.string :as str]))
+  (:require [kotoba.lang.text :as str]))
 
 ;; ---------------------------------------------------------------------------
 ;; Howard Hinnant day-number arithmetic (proleptic Gregorian calendar)
