@@ -1,5 +1,5 @@
 (ns ical.builder-test
-  (:require [clojure.string :as str]
+  (:require [kotoba.lang.text :as str]
             [clojure.test :refer [deftest is]]
             [ical.builder :as b]
             [kotoba.ical :as ki]))
