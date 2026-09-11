@@ -1,5 +1,5 @@
 ;; ical.execute -- Howard Hinnant day-number arithmetic as a pure Kotoba
-;; guest (oracle: src/ical/execute.cljc).
+;; guest (oracle: src/ical/execute.cljk).
 ;;
 ;; The oracle's date arithmetic is pure integer math -- days_from_civil /
 ;; civil_from_days / weekday-from-days -- which is exactly the slice a

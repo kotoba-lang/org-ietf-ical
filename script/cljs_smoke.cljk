@@ -7,7 +7,7 @@
   be correct. A portability claim that is never run in the second runtime is
   not a claim, it is a hope.
 
-  Run: nbb --classpath src script/cljs_smoke.cljs"
+  Run: nbb --classpath src script/cljs_smoke.cljk"
   (:require [kotoba.lang.text :as str]
             [ical.ical :as ical]))
 
