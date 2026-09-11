@@ -32,7 +32,7 @@
   timestamp tens of thousands of years in the past.
 
   The suite could not see it: the tests are `.cljc` but only ever run on the
-  JVM, where the old code was correct. `script/cljs_smoke.cljs` now exercises
+  JVM, where the old code was correct. `script/cljs_smoke.cljk` now exercises
   this path under nbb for that reason."
   [s]
   (reduce (fn [acc c] (+ (* acc 10) (digit c 0))) 0 s))
